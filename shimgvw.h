@@ -39,7 +39,7 @@
 using namespace Gdiplus;
 using namespace Gdiplus::DllExports;
 
-extern HINSTANCE g_hInstance;
+EXTERN_C HINSTANCE g_hInstance;
 extern GpImage *g_pImage;
 
 typedef struct

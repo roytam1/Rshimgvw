@@ -948,7 +948,7 @@ Preview_CreateToolBar(PPREVIEW_DATA pData)
 {
     HWND hwndToolBar;
     HIMAGELIST hImageList, hOldImageList;
-    DWORD style = WS_CHILD | WS_VISIBLE | TBSTYLE_FLAT | TBSTYLE_TOOLTIPS;
+    DWORD style = WS_CHILD | WS_VISIBLE | TBSTYLE_FLAT | TBSTYLE_TOOLTIPS | TBSTYLE_CUSTOMERASE;
 
     if (!Preview_IsMainWnd(pData->m_hwnd))
         return TRUE; /* FIXME */
@@ -1599,6 +1599,13 @@ Preview_OnNotify(HWND hwnd, LPNMHDR pnmhdr)
             lpttt->lpszText = MAKEINTRESOURCEW(s_ButtonConfig[lpttt->hdr.idFrom - IDC_TOOL_BASE].ids);
             break;
         }
+        case NM_CUSTOMDRAW:
+        {
+            if(((LPNMCUSTOMDRAW)pnmhdr)->dwDrawStage == CDDS_PREPAINT) {
+                FillRect(((LPNMCUSTOMDRAW)pnmhdr)->hdc, &((LPNMCUSTOMDRAW)pnmhdr)->rc, GetSysColorBrush(COLOR_3DFACE));
+            }
+            return CDRF_NOTIFYITEMDRAW;
+        }
     }
     return 0;
 }
@@ -1730,7 +1737,7 @@ PreviewWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
     return 0;
 }
 
-LONG
+EXTERN_C LONG
 ImageView_Main(HWND hwnd, LPCWSTR szFileName)
 {
     struct GdiplusStartupInput gdiplusStartupInput;
