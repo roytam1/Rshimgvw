@@ -29,8 +29,8 @@ typedef struct tagPOLICYDATA
 
 HANDLE WINAPI SHGlobalCounterCreate(REFGUID guid);
 PVOID WINAPI SHInterlockedCompareExchange(PVOID *dest, PVOID xchg, PVOID compare);
-LONG WINAPI SHGlobalCounterGetValue(HANDLE hGlobalCounter);
-LONG WINAPI SHGlobalCounterIncrement(HANDLE hGlobalCounter);
+//LONG WINAPI SHGlobalCounterGetValue(HANDLE hGlobalCounter);
+//LONG WINAPI SHGlobalCounterIncrement(HANDLE hGlobalCounter);
 
 #if FALSE && ((DLL_EXPORT_VERSION) >= _WIN32_WINNT_VISTA)
 #define SHELL_GCOUNTER_DEFINE_GUID(name, a, b, c, d, e, f, g, h, i, j, k) enum { SHELLUNUSEDCOUNTERGUID_##name }
@@ -99,7 +99,7 @@ HRESULT WINAPI IUnknown_QueryStatus(IUnknown *lpUnknown, REFGUID pguidCmdGroup, 
 HRESULT WINAPI IUnknown_Exec(IUnknown* lpUnknown, REFGUID pguidCmdGroup, DWORD nCmdID, DWORD nCmdexecopt, VARIANT* pvaIn, VARIANT* pvaOut);
 LONG WINAPI SHSetWindowBits(HWND hwnd, INT offset, UINT wMask, UINT wFlags);
 HWND WINAPI SHSetParentHwnd(HWND hWnd, HWND hWndParent);
-HRESULT WINAPI ConnectToConnectionPoint(IUnknown *lpUnkSink, REFIID riid, BOOL bAdviseOnly, IUnknown *lpUnknown, LPDWORD lpCookie, IConnectionPoint **lppCP);
+//HRESULT WINAPI ConnectToConnectionPoint(IUnknown *lpUnkSink, REFIID riid, BOOL bAdviseOnly, IUnknown *lpUnknown, LPDWORD lpCookie, IConnectionPoint **lppCP);
 BOOL WINAPI SHIsSameObject(IUnknown *lpInt1, IUnknown *lpInt2);
 BOOL WINAPI SHLoadMenuPopup(HINSTANCE hInst, LPCWSTR szName);
 void WINAPI SHPropagateMessage(HWND hWnd, UINT uiMsgId, WPARAM wParam, LPARAM lParam, BOOL bSend);
@@ -112,7 +112,7 @@ DWORD WINAPI SHGetCurColorRes(void);
 HMENU WINAPI SHGetMenuFromID(HMENU hMenu, UINT uID);
 DWORD WINAPI SHMenuIndexFromID(HMENU hMenu, UINT uID);
 DWORD WINAPI SHWaitForSendMessageThread(HANDLE hand, DWORD dwTimeout);
-DWORD WINAPI SHSendMessageBroadcastW(UINT uMsg, WPARAM wParam, LPARAM lParam);
+//DWORD WINAPI SHSendMessageBroadcastW(UINT uMsg, WPARAM wParam, LPARAM lParam);
 HRESULT WINAPI SHIsExpandableFolder(LPSHELLFOLDER lpFolder, LPCITEMIDLIST pidl);
 DWORD WINAPI SHFillRectClr(HDC hDC, LPCRECT pRect, COLORREF cRef);
 int WINAPI SHSearchMapInt(const int *lpKeys, const int *lpValues, int iLen, int iKey);
@@ -168,8 +168,8 @@ HRESULT WINAPI SHWriteDataBlockList(IStream* lpStream, LPDBLIST lpList);
 HRESULT WINAPI SHReadDataBlockList(IStream* lpStream, LPDBLIST* lppList);
 VOID WINAPI SHFreeDataBlockList(LPDBLIST lpList);
 
-HRESULT WINAPI IStream_ReadPidl(_In_ IStream *pstm, _Out_ LPITEMIDLIST *ppidlOut);
-HRESULT WINAPI IStream_WritePidl(_In_ IStream *pstm, _In_ LPCITEMIDLIST pidlWrite);
+//HRESULT WINAPI IStream_ReadPidl(_In_ IStream *pstm, _Out_ LPITEMIDLIST *ppidlOut);
+//HRESULT WINAPI IStream_WritePidl(_In_ IStream *pstm, _In_ LPCITEMIDLIST pidlWrite);
 
 LONG
 WINAPI
@@ -288,8 +288,8 @@ HRESULT WINAPI IUnknown_HasFocusIO(IUnknown * punk);
 HRESULT WINAPI IUnknown_TranslateAcceleratorIO(IUnknown * punk, MSG * pmsg);
 HRESULT WINAPI IUnknown_OnFocusChangeIS(LPUNKNOWN lpUnknown, LPUNKNOWN pFocusObject, BOOL bFocus);
 
-DWORD WINAPI SHAnsiToUnicode(LPCSTR lpSrcStr, LPWSTR lpDstStr, INT iLen);
-INT WINAPI SHUnicodeToAnsi(LPCWSTR lpSrcStr, LPSTR lpDstStr, INT iLen);
+//DWORD WINAPI SHAnsiToUnicode(LPCSTR lpSrcStr, LPWSTR lpDstStr, INT iLen);
+//INT WINAPI SHUnicodeToAnsi(LPCWSTR lpSrcStr, LPSTR lpDstStr, INT iLen);
 
 DWORD WINAPI SHAnsiToUnicodeCP(DWORD dwCp, LPCSTR lpSrcStr, LPWSTR lpDstStr, int iLen);
 DWORD WINAPI SHUnicodeToAnsiCP(UINT CodePage, LPCWSTR lpSrcStr, LPSTR lpDstStr, int dstlen);

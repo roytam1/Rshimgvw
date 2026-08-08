@@ -11,7 +11,10 @@
 #include <shellapi.h>
 #include <shellutils.h>
 #include <shlwapi_undoc.h>
-
+typedef HRESULT(WINAPI *FN_SHForwardContextMenuMsg)(IUnknown* pUnk, UINT uMsg, WPARAM wParam,
+    LPARAM lParam, LRESULT* pResult, BOOL useIContextMenu2);
+typedef HWND (WINAPI *FN_SHCreateWorkerWindowW)(WNDPROC wndProc, HWND hWndParent, DWORD dwExStyle,
+    DWORD dwStyle, HMENU hMenu, LONG_PTR wnd_extra);
 IContextMenu *g_pContextMenu = NULL;
 
 static int
@@ -56,7 +59,7 @@ ModifyShellContextMenu(IContextMenu *pCM, HMENU hMenu, UINT CmdIdFirst, PCWSTR A
 
         *buf = UNICODE_NULL;
         /* Note: We just ask for the wide string because all the items we care about come from shell32 and it handles both */
-        hr = IContextMenu_GetCommandString(pCM, id - CmdIdFirst, GCS_VERBW, NULL, (char*)buf, _countof(buf));
+        hr = pCM->GetCommandString(id - CmdIdFirst, GCS_VERBW, NULL, (char*)buf, _countof(buf));
         if (SUCCEEDED(hr))
         {
             UINT remove = FALSE;
@@ -84,8 +87,19 @@ static LRESULT CALLBACK
 ShellContextMenuWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
     LRESULT lRes = 0;
+#ifdef __RSHIMGVW__
+    {
+        HINSTANCE hSHLWAPI = LoadLibraryA("shlwapi");
+        FN_SHForwardContextMenuMsg fn = (FN_SHForwardContextMenuMsg)GetProcAddress(hSHLWAPI, "SHForwardContextMenuMsg");
+        if (FAILED(fn((IUnknown*)g_pContextMenu, uMsg, wParam, lParam, &lRes, TRUE))) {
+            FreeLibrary(hSHLWAPI);
+            lRes = DefWindowProc(hwnd, uMsg, wParam, lParam);
+        }
+    }
+#else
     if (FAILED(SHForwardContextMenuMsg((IUnknown*)g_pContextMenu, uMsg, wParam, lParam, &lRes, TRUE)))
         lRes = DefWindowProc(hwnd, uMsg, wParam, lParam);
+#endif
     return lRes;
 }
 
@@ -107,10 +121,19 @@ DoShellContextMenu(HWND hwnd, IContextMenu *pCM, PCWSTR File, LPARAM lParam)
     }
 
     g_pContextMenu = pCM;
+#ifdef __RSHIMGVW__
+    {
+        HINSTANCE hSHLWAPI = LoadLibraryA("shlwapi");
+        FN_SHCreateWorkerWindowW fn = (FN_SHCreateWorkerWindowW)GetProcAddress(hSHLWAPI, "SHCreateWorkerWindowW");
+        hwnd = fn(ShellContextMenuWindowProc, hwnd, 0, WS_VISIBLE | WS_CHILD, NULL, 0);
+        FreeLibrary(hSHLWAPI);
+    }
+#else
     hwnd = SHCreateWorkerWindowW(ShellContextMenuWindowProc, hwnd, 0, WS_VISIBLE | WS_CHILD, NULL, 0);
+#endif
     if (!hwnd)
         goto die;
-    hr = IContextMenu_QueryContextMenu(pCM, hMenu, 0, first, last, cmf | CMF_NODEFAULT);
+    hr = pCM->QueryContextMenu(hMenu, 0, first, last, cmf | CMF_NODEFAULT);
     if (SUCCEEDED(hr))
     {
         UINT id;
@@ -122,7 +145,7 @@ DoShellContextMenu(HWND hwnd, IContextMenu *pCM, PCWSTR File, LPARAM lParam)
                          (GetKeyState(VK_CONTROL) < 0 ? CMIC_MASK_CONTROL_DOWN : 0);
             CMINVOKECOMMANDINFO ici = { sizeof(ici), flags, hwnd, MAKEINTRESOURCEA(id - first) };
             ici.nShow = SW_SHOW;
-            hr = IContextMenu_InvokeCommand(pCM, &ici);
+            hr = pCM->InvokeCommand(&ici);
         }
     }
     DestroyWindow(hwnd);
@@ -141,8 +164,8 @@ GetUIObjectOfPath(HWND hwnd, PCWSTR File, REFIID riid, void **ppv)
     *ppv = NULL;
     if (pidl && SUCCEEDED(SHBindToParent(pidl, IID_PPV_ARG(IShellFolder, &pSF), &pidlItem)))
     {
-        hr = IShellFolder_GetUIObjectOf(pSF, hwnd, 1, &pidlItem, riid, NULL, ppv);
-        IShellFolder_Release(pSF);
+        hr = pSF->GetUIObjectOf(hwnd, 1, &pidlItem, riid, NULL, ppv);
+        pSF->Release();
     }
     SHFree(pidl);
     return hr;
@@ -156,7 +179,7 @@ DoShellContextMenuOnFile(HWND hwnd, PCWSTR File, LPARAM lParam)
     if (SUCCEEDED(hr))
     {
         DoShellContextMenu(hwnd, pCM, File, lParam);
-        IContextMenu_Release(pCM);
+        pCM->Release();
     }
 }
 
@@ -173,13 +196,13 @@ static DWORD CALLBACK
 EnableCommandIfVerbExistsProc(LPVOID ThreadParam)
 {
     enum { first = 1, last = 0x7fff };
-    ENABLECOMMANDDATA *pData = ThreadParam;
+    ENABLECOMMANDDATA *pData = (ENABLECOMMANDDATA*)ThreadParam;
     IContextMenu *pCM;
     HRESULT hr = GetUIObjectOfPath(pData->hwnd, pData->File, IID_PPV_ARG(IContextMenu, &pCM));
     if (SUCCEEDED(hr))
     {
         HMENU hMenu = CreatePopupMenu();
-        hr = IContextMenu_QueryContextMenu(pCM, hMenu, 0, first, last, CMF_NORMAL);
+        hr = pCM->QueryContextMenu(hMenu, 0, first, last, CMF_NORMAL);
         if (SUCCEEDED(hr))
         {
             for (UINT i = 0, c = GetMenuItemCount(hMenu); i < c; ++i)
@@ -190,7 +213,7 @@ EnableCommandIfVerbExistsProc(LPVOID ThreadParam)
                     continue;
 
                 *buf = UNICODE_NULL;
-                hr = IContextMenu_GetCommandString(pCM, id - first, GCS_VERBW, NULL, (char*)buf, _countof(buf));
+                hr = pCM->GetCommandString(id - first, GCS_VERBW, NULL, (char*)buf, _countof(buf));
                 if (SUCCEEDED(hr) && !lstrcmpiW(buf, pData->Verb))
                 {
                     PostMessageW(pData->hwnd, WM_UPDATECOMMANDSTATE, MAKELONG(pData->CmdId, TRUE), pData->ImageId);
@@ -199,7 +222,7 @@ EnableCommandIfVerbExistsProc(LPVOID ThreadParam)
             }
         }
         DestroyMenu(hMenu);
-        IContextMenu_Release(pCM);
+        pCM->Release();
     }
     SHFree(pData);
     return 0;
@@ -209,7 +232,7 @@ void
 EnableCommandIfVerbExists(UINT ImageId, HWND hwnd, UINT CmdId, PCWSTR Verb, PCWSTR File)
 {
     const SIZE_T cch = lstrlenW(File) + 1;
-    ENABLECOMMANDDATA *pData = SHAlloc(FIELD_OFFSET(ENABLECOMMANDDATA, File[cch]));
+    ENABLECOMMANDDATA *pData = (ENABLECOMMANDDATA*)SHAlloc(FIELD_OFFSET(ENABLECOMMANDDATA, File[cch]));
     if (pData)
     {
         pData->hwnd = hwnd;

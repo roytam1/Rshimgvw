@@ -426,7 +426,7 @@ Preview_pSaveImage(PPREVIEW_DATA pData, LPCWSTR pszFile)
         return FALSE;
 
     GdipGetImageEncodersSize(&num, &size);
-    codecInfo = QuickAlloc(size, FALSE);
+    codecInfo = (ImageCodecInfo*)QuickAlloc(size, FALSE);
     if (!codecInfo)
     {
         DPRINT1("QuickAlloc() failed in pSaveImage()\n");
@@ -435,13 +435,13 @@ Preview_pSaveImage(PPREVIEW_DATA pData, LPCWSTR pszFile)
     GdipGetImageEncoders(num, size, codecInfo);
 
     GdipGetImageRawFormat(g_pImage, &rawFormat);
-    if (IsEqualGUID(&rawFormat, &ImageFormatMemoryBMP))
+    if (IsEqualGUID(rawFormat, ImageFormatMemoryBMP))
         rawFormat = ImageFormatBMP;
 
     nFilterIndex = 0;
     for (j = 0; j < num; ++j)
     {
-        if (IsEqualGUID(&rawFormat, &codecInfo[j].FormatID))
+        if (IsEqualGUID(rawFormat, codecInfo[j].FormatID))
         {
             nFilterIndex = j + 1;
             break;
@@ -478,7 +478,7 @@ Preview_pSaveImageAs(PPREVIEW_DATA pData)
         return;
 
     GdipGetImageEncodersSize(&num, &size);
-    codecInfo = QuickAlloc(size, FALSE);
+    codecInfo = (ImageCodecInfo*)QuickAlloc(size, FALSE);
     if (!codecInfo)
     {
         DPRINT1("QuickAlloc() failed in pSaveImageAs()\n");
@@ -488,7 +488,7 @@ Preview_pSaveImageAs(PPREVIEW_DATA pData)
     GdipGetImageEncoders(num, size, codecInfo);
 
     GdipGetImageRawFormat(g_pImage, &rawFormat);
-    if (IsEqualGUID(&rawFormat, &ImageFormatMemoryBMP))
+    if (IsEqualGUID(rawFormat, ImageFormatMemoryBMP))
         rawFormat = ImageFormatBMP;
 
     sizeRemain = 0;
@@ -501,7 +501,7 @@ Preview_pSaveImageAs(PPREVIEW_DATA pData)
     /* Add two more chars for the last terminator */
     sizeRemain += (sizeof(WCHAR) * 2);
 
-    szFilterMask = QuickAlloc(sizeRemain, FALSE);
+    szFilterMask = (WCHAR*)QuickAlloc(sizeRemain, FALSE);
     if (!szFilterMask)
     {
         DPRINT1("cannot allocate memory for filter mask in pSaveImageAs()");
@@ -536,7 +536,7 @@ Preview_pSaveImageAs(PPREVIEW_DATA pData)
         c++;
         sizeRemain -= sizeof(*c);
 
-        if (IsEqualGUID(&rawFormat, &codecInfo[j].FormatID))
+        if (IsEqualGUID(rawFormat, codecInfo[j].FormatID))
         {
             sfn.nFilterIndex = j + 1;
         }
@@ -616,7 +616,7 @@ pBuildFileList(LPCWSTR szFirstFile)
     PathRemoveFileSpecW(szSearchPath);
 
     GdipGetImageDecodersSize(&num, &size);
-    codecInfo = QuickAlloc(size + ExtraSize, FALSE);
+    codecInfo = (ImageCodecInfo*)QuickAlloc(size + ExtraSize, FALSE);
     if (!codecInfo)
     {
         DPRINT1("QuickAlloc() failed in pLoadFileList()\n");
@@ -629,7 +629,7 @@ pBuildFileList(LPCWSTR szFirstFile)
         codecInfo[num].FilenameExtension = wcscpy(buffer, ExtraExtensions);
     num += ExtraCount;
 
-    root = QuickAlloc(sizeof(SHIMGVW_FILENODE), FALSE);
+    root = (SHIMGVW_FILENODE*)QuickAlloc(sizeof(SHIMGVW_FILENODE), FALSE);
     if (!root)
     {
         DPRINT1("QuickAlloc() failed in pLoadFileList()\n");
@@ -663,7 +663,7 @@ pBuildFileList(LPCWSTR szFirstFile)
                         currentNode = conductor;
                     }
 
-                    conductor->Next = QuickAlloc(sizeof(SHIMGVW_FILENODE), FALSE);
+                    conductor->Next = (SHIMGVW_FILENODE*)QuickAlloc(sizeof(SHIMGVW_FILENODE), FALSE);
 
                     // if QuickAlloc fails, make circular what we have and return it
                     if (!conductor->Next)
@@ -1261,7 +1261,7 @@ Preview_OnCreate(HWND hwnd, LPCREATESTRUCT pCS)
 {
     DWORD exstyle = 0;
     HWND hwndZoom;
-    PPREVIEW_DATA pData = QuickAlloc(sizeof(PREVIEW_DATA), TRUE);
+    PPREVIEW_DATA pData = (PPREVIEW_DATA)QuickAlloc(sizeof(PREVIEW_DATA), TRUE);
     pData->m_hwnd = hwnd;
     SetWindowLongPtrW(hwnd, GWLP_USERDATA, (LONG_PTR)pData);
 
@@ -1741,7 +1741,7 @@ ImageView_Main(HWND hwnd, LPCWSTR szFileName)
     MSG msg;
     HACCEL hAccel;
     HRESULT hrCoInit;
-    INITCOMMONCONTROLSEX Icc = { .dwSize = sizeof(Icc), .dwICC = ICC_WIN95_CLASSES };
+    INITCOMMONCONTROLSEX Icc = { sizeof(Icc), ICC_WIN95_CLASSES };
     g_szFile[0] = UNICODE_NULL;
 
     InitCommonControlsEx(&Icc);

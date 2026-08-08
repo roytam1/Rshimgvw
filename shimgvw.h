@@ -20,6 +20,10 @@
 #include <winreg.h>
 #include <wingdi.h>
 #include <wincon.h>
+#ifdef __RSHIMGVW__
+#include <winuser.h>
+#include <winnetwk.h>
+#endif
 #include <objbase.h>
 #include <gdiplus.h>
 #include <shlwapi.h>
@@ -31,6 +35,9 @@
 #include "resource.h"
 
 #define WM_UPDATECOMMANDSTATE (WM_APP + 0)
+
+using namespace Gdiplus;
+using namespace Gdiplus::DllExports;
 
 extern HINSTANCE g_hInstance;
 extern GpImage *g_pImage;

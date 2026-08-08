@@ -19,6 +19,14 @@
 #ifndef __ROS_SHELL_UTILS_H
 #define __ROS_SHELL_UTILS_H
 
+#ifndef CFSTR_SHELLIDLISTW
+# define CFSTR_SHELLIDLISTW           L"Shell IDList Array"
+#endif
+
+#ifndef CFSTR_SHELLIDLISTOFFSETW
+# define CFSTR_SHELLIDLISTOFFSETW     L"Shell Object Offsets"
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif /* defined(__cplusplus) */

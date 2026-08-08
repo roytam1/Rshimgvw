@@ -22,8 +22,10 @@ endif()
 
 add_executable(shimgvw WIN32
     anime.c
+    loader.cpp
     shimgvw.c
     main.c
+    util.c
     shimgvw.rc)
 
 target_compile_definitions(shimgvw PRIVATE
