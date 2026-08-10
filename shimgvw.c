@@ -38,7 +38,7 @@ UINT                g_ImageId;
 
 static const UINT s_ZoomSteps[] =
 {
-    5, 10, 25, 50, 100, 200, 300, 500, 1000, 2000, 4000
+    5, 10, 25, 50, 75, 100, 200, 300, 500, 1000, 2000, 4000
 };
 
 #define MIN_ZOOM s_ZoomSteps[0]
