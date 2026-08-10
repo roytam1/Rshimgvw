@@ -33,6 +33,7 @@
 #include <debug.h>
 
 #include "resource.h"
+#include "dragdrop.h"
 
 #define WM_UPDATECOMMANDSTATE (WM_APP + 0)
 

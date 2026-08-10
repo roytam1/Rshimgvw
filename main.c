@@ -65,7 +65,13 @@ WinMain(HINSTANCE  hInstance,
     INT argc;
     LPWSTR *argv = CommandLineToArgvW(GetCommandLineW(), &argc);
     g_hInstance = hInstance;
+
+    // Initialize OLE (required for DoDragDrop)
+    OleInitialize(NULL);
+
     INT ret = SHIMGVW_Main(argc, argv);
     LocalFree(argv);
+
+    OleUninitialize();
     return ret;
 }
