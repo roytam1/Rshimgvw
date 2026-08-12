@@ -1261,8 +1261,8 @@ ZoomWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
             break;
         }
         case WM_CONTEXTMENU:
-            /*if (Preview_IsMainWnd(pData->m_hwnd) && *g_szFile)
-                DoShellContextMenuOnFile(hwnd, g_szFile, lParam);*/
+            if (Preview_IsMainWnd(pData->m_hwnd) && *g_szFile)
+                DoShellContextMenuOnFile(hwnd, g_szFile, lParam);
             break;
         case WM_HSCROLL:
         case WM_VSCROLL:
