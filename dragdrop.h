@@ -43,6 +43,14 @@ void DD_Uninitialize(void);
 typedef void (*DD_OnFilesDroppedFn)(const wchar_t** paths, int count, void* userdata);
 void DD_SetDropCallback(DD_OnFilesDroppedFn callback, void* userdata);
 
+/* SHLWAPI replacements */
+
+HWND MyCreateWorkerWindow(WNDPROC wndProc, HWND hWndParent, DWORD dwExStyle, DWORD dwStyle, HMENU hMenu, LPVOID wnd_data);
+
+HRESULT MyForwardContextMenuMsg(
+    IUnknown* pcm, UINT uMsg, WPARAM wParam, LPARAM lParam,
+    LRESULT* plResult, BOOL fDefaultHandling);
+
 #ifdef __cplusplus
 }
 #endif

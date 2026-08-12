@@ -204,37 +204,123 @@ extern "C" void DD_DisableDropTarget(HWND hwnd) {
 }
 
 extern "C" int DD_BeginFileDragOne(const wchar_t* path) {
-	std::vector<std::wstring> files;
-	files.emplace_back(path);
+    std::vector<std::wstring> files;
+    files.emplace_back(path);
 
-	CFileDataObject* pDataObj = new CFileDataObject(files);
-	CDropSource* pDropSource = new CDropSource();
+    CFileDataObject* pDataObj = new CFileDataObject(files);
+    CDropSource* pDropSource = new CDropSource();
 
-	DWORD dwEffect = 0;
-	HRESULT hr = DoDragDrop(pDataObj, pDropSource, DROPEFFECT_COPY | DROPEFFECT_MOVE, &dwEffect);
+    DWORD dwEffect = 0;
+    HRESULT hr = DoDragDrop(pDataObj, pDropSource, DROPEFFECT_COPY | DROPEFFECT_MOVE, &dwEffect);
 
-	pDataObj->Release();
-	pDropSource->Release();
-	return SUCCEEDED(hr) ? 0 : -1;
+    pDataObj->Release();
+    pDropSource->Release();
+    return SUCCEEDED(hr) ? 0 : -1;
 }
 
 extern "C" int DD_BeginFileDrag(const wchar_t** paths, int count) {
-	std::vector<std::wstring> files;
-	files.reserve(count);
-	for (int i = 0; i < count; ++i) files.emplace_back(paths[i]);
+    std::vector<std::wstring> files;
+    files.reserve(count);
+    for (int i = 0; i < count; ++i) files.emplace_back(paths[i]);
 
-	CFileDataObject* pDataObj = new CFileDataObject(files);
-	CDropSource* pDropSource = new CDropSource();
+    CFileDataObject* pDataObj = new CFileDataObject(files);
+    CDropSource* pDropSource = new CDropSource();
 
-	DWORD dwEffect = 0;
-	HRESULT hr = DoDragDrop(pDataObj, pDropSource, DROPEFFECT_COPY | DROPEFFECT_MOVE, &dwEffect);
+    DWORD dwEffect = 0;
+    HRESULT hr = DoDragDrop(pDataObj, pDropSource, DROPEFFECT_COPY | DROPEFFECT_MOVE, &dwEffect);
 
-	pDataObj->Release();
-	pDropSource->Release();
-	return SUCCEEDED(hr) ? 0 : -1;
+    pDataObj->Release();
+    pDropSource->Release();
+    return SUCCEEDED(hr) ? 0 : -1;
 }
 
 extern "C" void DD_SetDropCallback(DD_OnFilesDroppedFn callback, void* userdata) {
     g_callback = callback;
     g_callbackUserdata = userdata;
+}
+
+/* SHLWAPI replacements */
+
+static LRESULT CALLBACK WorkerWndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+
+extern "C" HWND MyCreateWorkerWindow(WNDPROC wndProc, HWND hWndParent, DWORD dwExStyle, DWORD dwStyle, HMENU hMenu, LPVOID wnd_data)
+{
+    static const wchar_t* kClassName = L"MyContextMenuWorkerClass";
+    static BOOL registered = FALSE;
+
+    if (!registered)
+    {
+        WNDCLASSEXW wc = { sizeof(wc) };
+        wc.lpfnWndProc = wndProc ? wndProc : DefWindowProcW;
+        wc.hInstance = GetModuleHandle(NULL);
+        wc.lpszClassName = kClassName;
+        wc.cbWndExtra = sizeof(LONG_PTR);
+
+        ATOM atom = RegisterClassExW(&wc);
+        if (atom == 0)
+        {
+            DWORD err = GetLastError();
+            if (err != ERROR_CLASS_ALREADY_EXISTS)
+            {
+                // real failure ¡X log err, bail out, don't set registered = TRUE
+                return NULL;
+            }
+        }
+        registered = TRUE;
+    }
+    HWND hWndpp, hWnd;
+    // check if null dwStyle
+    if (dwStyle == 0)
+        dwStyle = WS_POPUP;
+    // find most parent
+    while (hWndpp = GetParent(hWndParent)) {
+        if (hWndpp) hWndParent = hWndpp;
+        else break;
+    }
+    hWnd = CreateWindowExW(
+        dwExStyle, kClassName, L"", dwStyle,
+        0, 0, 0, 0,
+        hWndParent, NULL, GetModuleHandle(NULL), NULL);
+    if (!hWnd) {
+        DWORD err = GetLastError();
+        return NULL;
+    }
+    if (hWnd && wnd_data)
+        SetWindowLongPtr(hWnd, 0, (LONG_PTR)wnd_data);
+
+    return hWnd;
+}
+
+extern "C" HRESULT MyForwardContextMenuMsg(
+    IUnknown* pcm, UINT uMsg, WPARAM wParam, LPARAM lParam,
+    LRESULT* plResult, BOOL fDefaultHandling)
+{
+    if (!pcm)
+        return E_NOINTERFACE;
+
+    HRESULT hr = E_NOTIMPL;
+
+    IContextMenu3* pcm3 = NULL;
+    if (SUCCEEDED(pcm->QueryInterface(IID_IContextMenu3, (void**)&pcm3)) && pcm3)
+    {
+        hr = pcm3->HandleMenuMsg2(uMsg, wParam, lParam, plResult);
+        pcm3->Release();
+    }
+
+    if (hr == E_NOTIMPL)
+    {
+        IContextMenu2* pcm2 = NULL;
+        if (SUCCEEDED(pcm->QueryInterface(IID_IContextMenu2, (void**)&pcm2)) && pcm2)
+        {
+            hr = pcm2->HandleMenuMsg(uMsg, wParam, lParam);
+            if (SUCCEEDED(hr) && plResult)
+                *plResult = 0; // HandleMenuMsg has no out-result; caller wanted 0
+            pcm2->Release();
+        }
+    }
+
+    if (hr == E_NOTIMPL && fDefaultHandling && plResult)
+        *plResult = 0;
+
+    return hr;
 }

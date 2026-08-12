@@ -11,10 +11,12 @@
 #include <shellapi.h>
 #include <shellutils.h>
 #include <shlwapi_undoc.h>
-typedef HRESULT(WINAPI *FN_SHForwardContextMenuMsg)(IUnknown* pUnk, UINT uMsg, WPARAM wParam,
-    LPARAM lParam, LRESULT* pResult, BOOL useIContextMenu2);
-typedef HWND (WINAPI *FN_SHCreateWorkerWindowW)(WNDPROC wndProc, HWND hWndParent, DWORD dwExStyle,
-    DWORD dwStyle, HMENU hMenu, LONG_PTR wnd_extra);
+#ifdef __RSHIMGVW__
+#include "dragdrop.h"
+#define SHForwardContextMenuMsg MyForwardContextMenuMsg
+#define SHCreateWorkerWindowW MyCreateWorkerWindow
+#endif
+
 IContextMenu *g_pContextMenu = NULL;
 
 static int
@@ -88,26 +90,17 @@ ModifyShellContextMenu(IContextMenu *pCM, HMENU hMenu, UINT CmdIdFirst, PCWSTR A
 static LRESULT CALLBACK
 ShellContextMenuWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-    LRESULT lRes = 0;
-#ifdef __RSHIMGVW__
-    {
-        HINSTANCE hSHLWAPI = LoadLibraryA("shlwapi.dll");
-        if (hSHLWAPI) {
-            FN_SHForwardContextMenuMsg fn = (FN_SHForwardContextMenuMsg)GetProcAddress(hSHLWAPI, "SHForwardContextMenuMsg");
-            if (fn && FAILED(fn((IUnknown*)g_pContextMenu, uMsg, wParam, lParam, &lRes, TRUE))) {
-                FreeLibrary(hSHLWAPI);
-                lRes = DefWindowProc(hwnd, uMsg, wParam, lParam);
-            } else 
-                FreeLibrary(hSHLWAPI);
-        } else
-        lRes = DefWindowProc(hwnd, uMsg, wParam, lParam);
-    }
-
-#else
-    if (FAILED(SHForwardContextMenuMsg((IUnknown*)g_pContextMenu, uMsg, wParam, lParam, &lRes, TRUE)))
-        lRes = DefWindowProc(hwnd, uMsg, wParam, lParam);
-#endif
-    return lRes;
+	if (g_pContextMenu)
+	{
+		LRESULT lres = 0;
+		HRESULT hr = MyForwardContextMenuMsg(g_pContextMenu, uMsg, wParam, lParam, &lres, TRUE);
+		if (hr != E_NOTIMPL)
+		{
+			SetWindowLongPtr(hwnd, DWLP_MSGRESULT, lres);
+			return TRUE;
+		}
+	}
+	return DefWindowProc(hwnd, uMsg, wParam, lParam);
 }
 
 static void
@@ -128,18 +121,7 @@ DoShellContextMenu(HWND hwnd, IContextMenu *pCM, PCWSTR File, LPARAM lParam)
     }
 
     g_pContextMenu = pCM;
-#ifdef __RSHIMGVW__
-    {
-        HINSTANCE hSHLWAPI = LoadLibraryA("shlwapi.dll");
-        if (hSHLWAPI) {
-            FN_SHCreateWorkerWindowW fn = (FN_SHCreateWorkerWindowW)GetProcAddress(hSHLWAPI, "SHCreateWorkerWindowW");
-            if (fn) hwnd = fn(ShellContextMenuWindowProc, hwnd, 0, WS_VISIBLE | WS_CHILD, NULL, 0);
-            FreeLibrary(hSHLWAPI);
-        }
-    }
-#else
     hwnd = SHCreateWorkerWindowW(ShellContextMenuWindowProc, hwnd, 0, WS_VISIBLE | WS_CHILD, NULL, 0);
-#endif
     if (!hwnd)
         goto die;
     hr = pCM->QueryContextMenu(hMenu, 0, first, last, cmf | CMF_NODEFAULT);
